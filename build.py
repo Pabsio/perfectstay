@@ -186,7 +186,7 @@ def load_data():
 
     # Load all prices grouped by product
     price_rows = conn.execute("""
-        SELECT producto_id, origen_iata, noches, precio, precio_anterior, pension
+        SELECT producto_id, origen_iata, noches, precio, precio_anterior, pension, top_dates
         FROM precios
         ORDER BY producto_id, precio ASC
     """).fetchall()
@@ -198,12 +198,17 @@ def load_data():
         pid = pr["producto_id"]
         if pid not in prices_by_product:
             prices_by_product[pid] = []
+        try:
+            td = json.loads(pr["top_dates"] or "[]")
+        except Exception:
+            td = []
         prices_by_product[pid].append({
-            "o": pr["origen_iata"],
-            "n": int(pr["noches"] or 0),
-            "p": float(pr["precio"] or 0),
+            "o":  pr["origen_iata"],
+            "n":  int(pr["noches"] or 0),
+            "p":  float(pr["precio"] or 0),
             "pa": float(pr["precio_anterior"]) if pr["precio_anterior"] else None,
-            "b": pr["pension"] or "",
+            "b":  pr["pension"] or "",
+            "td": td,
         })
 
     rows = prod_rows
@@ -265,9 +270,15 @@ def load_data():
         for pr in p.get("prices", []):
             if pr.get("o"):
                 origins_by_market.setdefault(mkt, set()).add(pr["o"])
-            if pr.get("b"):
-                pen_en = PENSION_EN.get(pr["b"], pr["b"])
-                if pen_en: boards_by_market.setdefault(mkt, set()).add(pen_en)
+            # Try pension from 'b' field, fallback to first top_date's 'b'
+            b_raw = pr.get("b","")
+            if not b_raw:
+                tds = pr.get("td", [])
+                if tds: b_raw = tds[0].get("b","")
+            if b_raw:
+                pen_en = PENSION_EN.get(b_raw, b_raw)
+                if pen_en and pen_en not in ("","Unknown"):
+                    boards_by_market.setdefault(mkt, set()).add(pen_en)
 
     # Noches únicas por mercado
     noches_by_market = {}
@@ -289,6 +300,19 @@ def load_data():
     def noches_for(mkt):
         return sorted(noches_by_market.get(mkt, set()))
 
+    # Months from top_dates
+    months_by_market = {}
+    for p in products:
+        mkt = p.get("market","ES")
+        for pr in p.get("prices", []):
+            for td in pr.get("td", []):
+                d = td.get("d","")
+                if d and len(d) >= 7:
+                    months_by_market.setdefault(mkt, set()).add(d[:7])
+
+    def months_for(mkt):
+        return sorted(months_by_market.get(mkt, set()))
+
     return {
         "products": products,
         "stats":    {"total": len(products), "generado": datetime.now().strftime("%d/%m/%Y %H:%M")},
@@ -296,6 +320,7 @@ def load_data():
             "origins_by_market": {m: origins_for(m) for m in ["ES","FR","IT"]},
             "boards_by_market":  {m: boards_for(m)  for m in ["ES","FR","IT"]},
             "noches_by_market":  {m: noches_for(m)  for m in ["ES","FR","IT"]},
+            "months_by_market":  {m: months_for(m)  for m in ["ES","FR","IT"]},
             "countries": paises,
         }
     }
@@ -553,15 +578,23 @@ button{cursor:pointer;font:inherit;border:none;background:none}
     <select class="hp-select" id="nights-select" onchange="F.nights=this.value;applyFilters()">
       <option value="">Any</option>
     </select>
+    <span style="color:var(--border);margin:0 4px">|</span>
+    <span class="filter-label">Type</span>
+    <select class="hp-select" id="topic-select" onchange="F.topic=this.value;applyFilters()">
+      <option value="">All types</option>
+    </select>
+    <span style="color:var(--border);margin:0 4px">|</span>
+    <span class="filter-label">Price</span>
+    <input type="number" id="f-pmin" placeholder="Min €" class="hp-select" style="width:72px" oninput="applyFilters()">
+    <span style="color:var(--muted);font-size:13px">–</span>
+    <input type="number" id="f-pmax" placeholder="Max €" class="hp-select" style="width:72px" oninput="applyFilters()">
   </div>
 
   <div class="filter-row">
     <span class="filter-label">Board</span>
     <button class="pill on" data-group="board" data-val="">All</button>
     <div id="board-pills" style="display:flex;gap:7px;flex-wrap:wrap"></div>
-  </div>
-
-  <div class="filter-row">
+    <span style="color:var(--border);margin:0 4px">|</span>
     <span class="filter-label">Stars</span>
     <button class="pill on" data-group="stars" data-val="">All</button>
     <button class="pill" data-group="stars" data-val="3">★★★</button>
@@ -570,16 +603,10 @@ button{cursor:pointer;font:inherit;border:none;background:none}
   </div>
 
   <div class="filter-row">
-    <span class="filter-label">Type</span>
-    <button class="pill on" data-group="topic" data-val="">All</button>
-    <div id="topic-pills" style="display:flex;gap:7px;flex-wrap:wrap"></div>
-  </div>
-
-  <div class="filter-row">
-    <span class="filter-label">Price</span>
-    <input type="number" id="f-pmin" placeholder="Min €" class="hp-select" style="width:78px" oninput="applyFilters()">
-    <span style="color:var(--muted);font-size:13px">–</span>
-    <input type="number" id="f-pmax" placeholder="Max €" class="hp-select" style="width:78px" oninput="applyFilters()">
+    <span class="filter-label">Month</span>
+    <div id="month-pills" style="display:flex;gap:7px;flex-wrap:wrap">
+      <button class="pill on" data-group="month" data-val="">All</button>
+    </div>
   </div>
 
 </div>
@@ -595,7 +622,7 @@ button{cursor:pointer;font:inherit;border:none;background:none}
 <script>
 const D = __DATA__;
 
-const F = { market:"ES", origin:"", nights:"", board:"", stars:"", topic:"", region:"All", pmin:0, pmax:Infinity, search:"" };
+const F = { market:"ES", origin:"", nights:"", board:"", stars:"", topic:"", month:"", region:"All", pmin:0, pmax:Infinity, search:"" };
 let filtered = [];
 let viewMode = "grid";
 
@@ -644,16 +671,27 @@ function buildDynamicPills(market) {
     btn.textContent = b; bp.appendChild(btn);
   });
 
-  // Topics
-  const tp = document.getElementById("topic-pills");
-  tp.innerHTML = "";
-  const topics = new Set();
-  D.products.filter(p => p.market === market).forEach(p => (p.topics||[]).forEach(t => topics.add(t)));
-  [...topics].sort().forEach(t => {
-    const btn = document.createElement("button");
-    btn.className = "pill"; btn.dataset.group = "topic"; btn.dataset.val = t;
-    btn.textContent = t; tp.appendChild(btn);
-  });
+  // Topics - dropdown
+  const td2 = document.getElementById("topic-select");
+  if (td2) {
+    td2.innerHTML = "<option value=''>All types</option>";
+    const topics = new Set();
+    D.products.filter(p => p.market === market).forEach(p => (p.topics||[]).forEach(t => topics.add(t)));
+    [...topics].sort().forEach(t => td2.add(new Option(t, t)));
+  }
+
+  // Months
+  const mp = document.getElementById("month-pills");
+  if (mp) {
+    mp.innerHTML = '<button class="pill on" data-group="month" data-val="">All</button>';
+    const MN = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    (D.filters.months_by_market[market] || []).forEach(m => {
+      const [y, mo] = m.split("-");
+      const btn = document.createElement("button");
+      btn.className = "pill"; btn.dataset.group = "month"; btn.dataset.val = m;
+      btn.textContent = MN[parseInt(mo)-1] + " " + y.slice(2); mp.appendChild(btn);
+    });
+  }
 }
 
 function buildRegionTabs() {
@@ -685,7 +723,7 @@ function bindPills() {
     pill.classList.add("on");
     F[group] = val;
     if (group === "market") {
-      F.origin=""; F.board=""; F.nights=""; F.topic=""; F.region="All";
+      F.origin=""; F.board=""; F.nights=""; F.topic=""; F.month=""; F.region="All";
       buildDynamicPills(val);
       buildRegionTabs();
     }
@@ -715,11 +753,25 @@ function applyFilters() {
 
     let candidates = p.prices || [];
     if (F.origin) candidates = candidates.filter(pr => pr.o === F.origin);
-    if (F.board)  candidates = candidates.filter(pr => (BOARDS[pr.b]||pr.b) === F.board);
+    if (F.board)  candidates = candidates.filter(pr => { const b = pr.b || (pr.td&&pr.td[0]&&pr.td[0].b)||""; return (BOARDS[b]||b) === F.board; });
     if (F.nights) candidates = candidates.filter(pr => String(pr.n) === String(F.nights));
+    if (F.month)  candidates = candidates.filter(pr => (pr.td||[]).some(td => td.d && td.d.startsWith(F.month)));
     if (!candidates.length) continue;
 
-    const best = candidates.reduce((a,b) => a.p < b.p ? a : b);
+    let best;
+    if (F.month) {
+      let bestDate = null;
+      for (const pr of candidates) {
+        for (const td of (pr.td||[])) {
+          if (td.d && td.d.startsWith(F.month) && (!bestDate || td.p < bestDate.p))
+            bestDate = {...td, _pr: pr};
+        }
+      }
+      if (!bestDate) continue;
+      best = {...bestDate._pr, p: bestDate.p, _date: bestDate.d, _return: bestDate.r};
+    } else {
+      best = candidates.reduce((a,b) => a.p < b.p ? a : b);
+    }
     if (best.p < F.pmin || best.p > F.pmax) continue;
 
     filtered.push({...p,
@@ -731,6 +783,8 @@ function applyFilters() {
       _precio_ant:   best.pa,
       _precio_noche: best.n ? Math.round(best.p / best.n) : null,
       _bajada:       best.pa && best.p < best.pa ? Math.round((best.pa-best.p)/best.pa*100) : null,
+      _date:         best._date || null,
+      _return:       best._return || null,
     });
   }
 
@@ -781,6 +835,7 @@ function makeCard(p) {
   const loc       = [p.resort, p.pais].filter(Boolean).join(", ");
   const from      = origenLbl ? `From ${esc(origenLbl)}` : "";
   const nightStr  = [pNoche?Math.round(pNoche)+"€/night":"", noches?noches+"n":""].filter(Boolean).join(" · ");
+  const dateStr   = p._date ? `✈ ${p._date}${p._return?" → "+p._return:""}` : "";
   const img       = p.foto_url ? `<img src="${esc(p.foto_url)}" loading="lazy" alt="" onerror="this.parentElement.innerHTML='<div class=no-img>🏨</div>'">` : `<div class="no-img">🏨</div>`;
 
   el.innerHTML = `
@@ -793,6 +848,7 @@ function makeCard(p) {
       <div class="card-name">${esc(p.nombre||"")}</div>
       ${loc?`<div class="card-loc">📍 ${esc(loc)}</div>`:""}
       <div class="card-badges">${starsB}${board}${ta}</div>
+      ${dateStr?`<div style="font-size:11px;color:var(--hp-purple);margin-top:3px;font-weight:600">${esc(dateStr)}</div>`:""}
     </div>
     <div class="card-footer">
       <div>
@@ -822,6 +878,7 @@ function makeRow(p) {
   const loc       = [p.resort, p.pais].filter(Boolean).join(", ");
   const from      = origenLbl ? `From ${esc(origenLbl)}` : "";
   const nightStr  = [pNoche?Math.round(pNoche)+"€/night":"", noches?noches+"n":""].filter(Boolean).join(" · ");
+  const dateStr   = p._date ? `✈ ${p._date}${p._return?" → "+p._return:""}` : "";
   const img       = p.foto_url ? `<img src="${esc(p.foto_url)}" loading="lazy" alt="" onerror="this.parentElement.innerHTML='<div class=no-img style=height:80px>🏨</div>'">` : `<div class="no-img" style="height:80px">🏨</div>`;
 
   el.innerHTML = `

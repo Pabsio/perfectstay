@@ -117,9 +117,15 @@ def fetch_all_city_prices(city_uris: set, base: str, workers=20) -> dict:
 
 
 def parse_min_prices(city_json) -> dict:
-    mins = {}
+    """
+    Devuelve {noches: {precio, pension, top_dates}}
+    top_dates = lista de las 3 fechas más baratas: [{d, p, r}]
+    """
+    # Acumular todos los precios por noches
+    all_prices = {}  # {noches: [{p, d, r}]}
+
     if not city_json:
-        return mins
+        return {}
     packages = city_json if isinstance(city_json, list) else None
     if packages is None and isinstance(city_json, dict):
         for key in ("packages","offers","departures","results","data","items"):
@@ -127,6 +133,9 @@ def parse_min_prices(city_json) -> dict:
                 packages = city_json[key]; break
         if packages is None:
             packages = [city_json]
+
+    pension_by_noches = {}
+
     for pkg in (packages or []):
         if not isinstance(pkg, dict):
             continue
@@ -138,28 +147,46 @@ def parse_min_prices(city_json) -> dict:
                 if not p.get("o", True): continue
                 precio = p.get("p")
                 if not precio: continue
-                precio = float(precio)
-                if noches not in mins or precio < mins[noches]["precio"]:
-                    mins[noches] = {
-                        "precio":       precio,
-                        "fecha_salida": ts_to_date(p.get("dd")),
-                        "fecha_vuelta": ts_to_date(p.get("ed")),
-                        "pension":      PENSION_MAP.get(p.get("b",""), p.get("b","")),
-                    }
+                b = p.get("b","")  # b is on each price, not the block
+                mapped_b = PENSION_MAP.get(b, b)
+                if mapped_b: pension_by_noches[noches] = mapped_b
+                all_prices.setdefault(noches, []).append({
+                    "p": float(precio),
+                    "d": ts_to_date(p.get("dd")),
+                    "r": ts_to_date(p.get("ed")),
+                    "b": mapped_b,
+                })
             continue
         precio = pkg.get("p") or pkg.get("price") or pkg.get("pricePerPerson")
         noches = pkg.get("n") or pkg.get("nights") or pkg.get("value") or pkg.get("numberOfNights")
         if precio and noches:
             precio, noches = float(precio), int(noches)
             dd = pkg.get("dd") or pkg.get("departureDate")
-            if noches not in mins or precio < mins[noches]["precio"]:
-                mins[noches] = {
-                    "precio":       precio,
-                    "fecha_salida": ts_to_date(dd) if isinstance(dd,(int,float)) else str(dd or ""),
-                    "fecha_vuelta": ts_to_date(pkg.get("ed")),
-                    "pension":      PENSION_MAP.get(pkg.get("b",""), pkg.get("b","")),
-                }
-    return mins
+            b  = pkg.get("b","")
+            pension_by_noches[noches] = PENSION_MAP.get(b, b)
+            all_prices.setdefault(noches, []).append({
+                "p": precio,
+                "d": ts_to_date(dd) if isinstance(dd,(int,float)) else str(dd or ""),
+                "r": ts_to_date(pkg.get("ed")),
+                "b": PENSION_MAP.get(b, b),
+            })
+
+    # Para cada número de noches, calcular mínimo y top 3 fechas
+    result = {}
+    for noches, prices in all_prices.items():
+        sorted_prices = sorted(prices, key=lambda x: x["p"])
+        min_price     = sorted_prices[0]["p"]
+        top_dates     = sorted_prices[:3]  # top 3 más baratas
+        pension       = pension_by_noches.get(noches, "")
+        # Also try to get pension from the price entries themselves
+        if not pension and top_dates:
+            pension = top_dates[0].get("b", "")
+        result[noches] = {
+            "precio":    min_price,
+            "pension":   pension,
+            "top_dates": top_dates,
+        }
+    return result
 
 
 def build_min_price_rows(products, details, city_data, market) -> list[dict]:
@@ -183,17 +210,24 @@ def build_min_price_rows(products, details, city_data, market) -> list[dict]:
             fpt = product.get("fromPriceType") or {}
             if fpt.get("value") and fpt.get("numberOfNights"):
                 key = (pid, "", int(fpt["numberOfNights"]))
+                dd  = fpt.get("departureDate")
                 mins[key] = {
-                    "precio":       float(fpt["value"]),
-                    "fecha_salida": ts_to_date(fpt.get("departureDate")),
-                    "fecha_vuelta": "",
-                    "pension":      fpt.get("mealBasis",""),
+                    "precio":    float(fpt["value"]),
+                    "pension":   fpt.get("mealBasis",""),
+                    "top_dates": [{"p": float(fpt["value"]),
+                                   "d": ts_to_date(dd) if dd else "",
+                                   "r": ""}],
                 }
     rows = []
     for (pid, iata, noches), data in mins.items():
-        rows.append({"producto_id": pid, "origen_iata": iata, "noches": noches,
-                     "precio": data["precio"], "fecha_salida": data["fecha_salida"],
-                     "fecha_vuelta": data["fecha_vuelta"], "pension": data["pension"]})
+        rows.append({
+            "producto_id": pid,
+            "origen_iata": iata,
+            "noches":      noches,
+            "precio":      data["precio"],
+            "pension":     data["pension"],
+            "top_dates":   data.get("top_dates", []),
+        })
     return rows
 
 
