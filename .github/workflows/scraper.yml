@@ -5,6 +5,9 @@ on:
     - cron: "30 7,11,16 * * 1-5"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   scrape:
     runs-on: ubuntu-latest
@@ -21,13 +24,13 @@ jobs:
       - name: Install dependencies
         run: pip install requests flask google-genai
 
-      - name: Run scraper (all markets)
+      - name: Run scraper
         run: python scraper.py --market ES,FR,IT
 
       - name: Build static HTML
         run: python build.py
 
-      - name: Commit DB
+      - name: Commit changes
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
