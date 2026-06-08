@@ -38,7 +38,8 @@ PENSION_EN = {
     "Pensione come da programma":"Full Board",
     "UAI":"All Inclusive","AIL":"All Inclusive","AIS":"All Inclusive",
     "HAI":"All Inclusive","SAI":"All Inclusive",
-    "SP":"Half Board","ABF":"Breakfast","CBF":"Breakfast","DB":"Breakfast",
+    "SP":"Half Board","ABF":"Breakfast","CBF":"Breakfast","DB":"Breakfast","UHB":"Half Board","GGBB":"Breakfast",
+    "UHB":"Half Board","GGBB":"Breakfast",
 }
 
 PENSION_SCORE = {
@@ -50,6 +51,7 @@ PENSION_SCORE = {
     "Solo Alojamiento":0,"Logement seul":0,"Solo pernottamento":0,
     "UAI":15,"AIL":15,"AIS":15,"HAI":15,"SAI":15,
     "SP":10,"ABF":5,"CBF":5,"DB":5,
+    "UHB":10,"GGBB":5,
 }
 
 TOPICS_EN = {
@@ -527,16 +529,70 @@ button{cursor:pointer;font:inherit;border:none;background:none}
 .empty{text-align:center;padding:80px 20px;color:var(--muted)}
 .empty .icon{font-size:52px;margin-bottom:12px}
 .empty p{font-size:15px}
+
+  #auth-gate{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px}
+  #auth-gate .auth-box{background:#fff;border-radius:18px;padding:40px 48px;text-align:center;box-shadow:0 8px 40px rgba(106,52,96,.12);max-width:380px;width:90%}
+  #auth-gate .auth-title{font-size:22px;font-weight:800;color:var(--hp);margin-bottom:8px}
+  #auth-gate .auth-sub{font-size:13px;color:var(--muted);margin-bottom:28px}
+  #auth-gate .auth-btn{width:100%;font-family:inherit;font-size:14px;font-weight:700;padding:13px;border-radius:20px;border:none;background:var(--hp);color:#fff;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:10px}
+  #auth-gate .auth-btn:hover{opacity:.88}
+  #auth-gate .auth-error{color:#c0392b;font-size:12px;margin-top:12px;display:none}
+  #app-content{display:none}
+  .signout-btn{font-family:inherit;font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px;border:1.5px solid rgba(255,255,255,.3);background:none;color:rgba(255,255,255,.8);cursor:pointer;transition:all .15s}
+  .signout-btn:hover{background:rgba(255,255,255,.15);color:#fff}
+
+  #auth-gate{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:28px}
+  #auth-gate .auth-box{background:#fff;border-radius:18px;padding:38px 46px;text-align:center;box-shadow:0 8px 40px rgba(106,52,96,.15);max-width:390px;width:100%;border:1px solid var(--border)}
+  #auth-gate .auth-title{font-size:22px;font-weight:800;color:var(--hp-purple);margin-bottom:8px}
+  #auth-gate .auth-sub{font-size:13px;color:var(--muted);margin-bottom:26px;line-height:1.5}
+  #auth-gate .auth-btn{width:100%;font-family:inherit;font-size:14px;font-weight:700;padding:13px;border-radius:20px;border:none;background:var(--hp-purple);color:#fff;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:10px}
+  #auth-gate .auth-btn:hover{opacity:.88}
+  #auth-gate .auth-error{color:#c0392b;font-size:12px;margin-top:12px;display:none}
+  #app-content{display:none}
+  .signout-btn{font-family:inherit;font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px;border:1.5px solid rgba(255,255,255,.3);background:none;color:rgba(255,255,255,.8);cursor:pointer;transition:all .15s}
+  .signout-btn:hover{background:rgba(255,255,255,.15);color:#fff}
 </style>
 </head>
 <body>
+
+<!-- AUTH GATE -->
+<div id="auth-gate">
+  <div class="auth-box">
+    <div style="font-size:40px;margin-bottom:12px">🏴‍☠️</div>
+    <div class="auth-title">Travel Deals</div>
+    <div class="auth-sub">Sign in with your HolidayPirates account to continue</div>
+    <button class="auth-btn" id="login-btn">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#fff" d="M9 3.48c1.69 0 2.83.73 3.48 1.34l2.54-2.48C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.96l2.91 2.26C4.6 5.05 6.62 3.48 9 3.48z"/><path fill="#fff" d="M17.64 9.2c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.1.83-.64 2.08-1.84 2.92l2.84 2.2c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#fff" d="M3.88 10.78A5.54 5.54 0 0 1 3.58 9c0-.62.11-1.22.29-1.78L.96 4.96A9.008 9.008 0 0 0 0 9c0 1.45.35 2.82.96 4.04l2.92-2.26z"/><path fill="#fff" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.84-2.2c-.76.53-1.78.9-3.12.9-2.38 0-4.4-1.57-5.12-3.74L.97 13.04C2.45 15.98 5.48 18 9 18z"/></svg>
+      Sign in with Google
+    </button>
+    <div class="auth-error" id="auth-error">Access restricted to HolidayPirates accounts.</div>
+  </div>
+</div>
+
+<div id="app-content">
+
+<!-- AUTH GATE -->
+<div id="auth-gate">
+  <div class="auth-box">
+    <div style="font-size:40px;margin-bottom:12px">🏴‍☠️</div>
+    <div class="auth-title">Travel Deals</div>
+    <div class="auth-sub">Sign in with your HolidayPirates account to continue</div>
+    <button class="auth-btn" id="login-btn">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#fff" d="M9 3.48c1.69 0 2.83.73 3.48 1.34l2.54-2.48C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.96l2.91 2.26C4.6 5.05 6.62 3.48 9 3.48z"/><path fill="#fff" d="M17.64 9.2c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.1.83-.64 2.08-1.84 2.92l2.84 2.2c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#fff" d="M3.88 10.78A5.54 5.54 0 0 1 3.58 9c0-.62.11-1.22.29-1.78L.96 4.96A9.008 9.008 0 0 0 0 9c0 1.45.35 2.82.96 4.04l2.92-2.26z"/><path fill="#fff" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.84-2.2c-.76.53-1.78.9-3.12.9-2.38 0-4.4-1.57-5.12-3.74L.97 13.04C2.45 15.98 5.48 18 9 18z"/></svg>
+      Sign in with Google
+    </button>
+    <div class="auth-error" id="auth-error">Access restricted to @holidaypirates.com accounts.</div>
+  </div>
+</div>
+
+<div id="app-content">
 
 <div class="topbar">
   <div class="topbar-brand">
     <svg width="26" height="26" viewBox="0 0 100 100" fill="none"><path d="M50 5C30 5 14 21 14 41c0 28 36 54 36 54s36-26 36-54c0-20-16-36-36-36z" fill="#fff" opacity=".15"/><path d="M50 8C31 8 16 23 16 42c0 27 34 52 34 52s34-25 34-52C84 23 69 8 50 8z" fill="none" stroke="#fff" stroke-width="2" opacity=".3"/><circle cx="62" cy="35" r="14" fill="#e63030"/><circle cx="62" cy="35" r="9" fill="#c0392b"/><circle cx="68" cy="31" r="3" fill="#fff"/><path d="M58 44 L45 55 L52 58 L48 68 L62 56 L55 53 Z" fill="#f39c12"/><path d="M48 25 L52 18 L56 25" fill="#27ae60"/><path d="M54 22 L60 17 L62 24" fill="#2ecc71"/></svg>
     <h1>HolidayPirates · Deal Board</h1>
   </div>
-  <div class="topbar-right">
+  <div class="topbar-right"><button class="signout-btn" id="signout-btn">Sign out</button><button class="signout-btn" id="signout-btn">Sign out</button>
     <span class="topbar-meta">Updated __GENERATED__ · __TOTAL__ deals</span>
     <div class="view-toggle">
       <button class="view-btn-toggle on" id="btn-grid" onclick="setView('grid')" title="Grid view">⊞</button>
@@ -737,7 +793,7 @@ function applyFilters() {
   F.search = (document.getElementById("f-search")?.value || "").toLowerCase();
   const sort = document.getElementById("f-sort")?.value || "score";
 
-  const BOARDS = {"All Inclusive":"All Inclusive","Half Board":"Half Board","Full Board":"Full Board","Breakfast":"Breakfast","Room Only":"Room Only","Todo Incluido":"All Inclusive","Media Pensión":"Half Board","Pensión Completa":"Full Board","Desayuno":"Breakfast","Solo Alojamiento":"Room Only","Tout inclus":"All Inclusive","Demi-pension":"Half Board","Pension complète":"Full Board","Petit-déjeuner":"Breakfast","Logement seul":"Room Only","Tutto incluso":"All Inclusive","Mezza pensione":"Half Board","Pensione completa":"Full Board","Prima colazione":"Breakfast","Solo pernottamento":"Room Only","Pensione come da programma":"Full Board","UAI":"All Inclusive","AIL":"All Inclusive","AIS":"All Inclusive","HAI":"All Inclusive","SAI":"All Inclusive","SP":"Half Board","ABF":"Breakfast","CBF":"Breakfast","DB":"Breakfast"};
+  const BOARDS = {"All Inclusive":"All Inclusive","Half Board":"Half Board","Full Board":"Full Board","Breakfast":"Breakfast","Room Only":"Room Only","Todo Incluido":"All Inclusive","Media Pensión":"Half Board","Pensión Completa":"Full Board","Desayuno":"Breakfast","Solo Alojamiento":"Room Only","Tout inclus":"All Inclusive","Demi-pension":"Half Board","Pension complète":"Full Board","Petit-déjeuner":"Breakfast","Logement seul":"Room Only","Tutto incluso":"All Inclusive","Mezza pensione":"Half Board","Pensione completa":"Full Board","Prima colazione":"Breakfast","Solo pernottamento":"Room Only","Pensione come da programma":"Full Board","UAI":"All Inclusive","AIL":"All Inclusive","AIS":"All Inclusive","HAI":"All Inclusive","SAI":"All Inclusive","SP":"Half Board","ABF":"Breakfast","CBF":"Breakfast","DB":"Breakfast","UHB":"Half Board","GGBB":"Breakfast"};
   const AIRPORT = {"MAD":"Madrid","BCN":"Barcelona","BIO":"Bilbao","SVQ":"Sevilla","VLC":"Valencia","AGP":"Málaga","ALC":"Alicante","OVD":"Asturias","SCQ":"Santiago","SDR":"Santander","ZAZ":"Zaragoza","GRX":"Granada","PMI":"Mallorca","CDG":"Paris","ORY":"Paris Orly","LYS":"Lyon","MRS":"Marseille","NCE":"Nice","TLS":"Toulouse","BOD":"Bordeaux","NTE":"Nantes","LIL":"Lille","FCO":"Roma","MXP":"Milano","LIN":"Milano Linate","BGY":"Bergamo","VCE":"Venezia","NAP":"Napoli","BLQ":"Bologna","CTA":"Catania","PMO":"Palermo","PAR":"Paris","ROM":"Roma","MIL":"Milano"};
 
   filtered = [];
@@ -903,6 +959,110 @@ function makeRow(p) {
 }
 
 function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+</script>
+</div><!-- /app-content -->
+
+<!-- NETLIFY IDENTITY -->
+<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+<script>
+  const gate     = document.getElementById('auth-gate');
+  const appDiv   = document.getElementById('app-content');
+  const loginBtn = document.getElementById('login-btn');
+  const errMsg   = document.getElementById('auth-error');
+  const signoutBtn = document.getElementById('signout-btn');
+  function checkUser(user) {
+    if (!user) return;
+    const email = (user.email || (user.user_metadata && user.user_metadata.email) || "").toLowerCase().trim();
+    if (!email) { setTimeout(() => checkUser(netlifyIdentity.currentUser()), 400); return; }
+    if (email.endsWith("@holidaypirates.com")) {
+      gate.style.display   = "none";
+      appDiv.style.display = "block";
+    } else {
+      sessionStorage.setItem('deck_domain_error', '1');
+      netlifyIdentity.logout();
+    }
+  }
+  netlifyIdentity.on('init', user => {
+    if (sessionStorage.getItem('deck_domain_error')) { errMsg.style.display='block'; sessionStorage.removeItem('deck_domain_error'); }
+    checkUser(user);
+  });
+  netlifyIdentity.on('login', user => { netlifyIdentity.close(); checkUser(user); });
+  netlifyIdentity.on('logout', () => location.reload());
+  loginBtn.addEventListener('click', () => { errMsg.style.display='none'; netlifyIdentity.open('login'); });
+  if (signoutBtn) signoutBtn.addEventListener('click', () => netlifyIdentity.logout());
+  netlifyIdentity.init();
+</script>
+</div><!-- /app-content -->
+
+<!-- AUTH — redirect flow -->
+<script>
+  const IDENTITY = "https://perfectstay-hp.netlify.app/.netlify/identity";
+  const SITE_ID  = "2a8514a9-b44a-4909-b50e-7538f8133d2c";
+  const gate       = document.getElementById('auth-gate');
+  const appDiv     = document.getElementById('app-content');
+  const loginBtn   = document.getElementById('login-btn');
+  const errMsg     = document.getElementById('auth-error');
+  const signoutBtn = document.getElementById('signout-btn');
+
+  function isAllowed(email) {
+    return email.endsWith('@holidaypirates.com') || email.endsWith('@extern.holidaypirates.com');
+  }
+
+  function showApp(email) {
+    gate.style.display   = 'none';
+    appDiv.style.display = 'block';
+  }
+
+  function handleCallback() {
+    const hash = window.location.hash;
+    if (!hash.includes('access_token')) return false;
+    const params = new URLSearchParams(hash.slice(1));
+    const token  = params.get('access_token');
+    if (!token) return false;
+    fetch(IDENTITY + '/user', { headers: { Authorization: 'Bearer ' + token } })
+      .then(r => r.json())
+      .then(user => {
+        const email = (user.email || '').toLowerCase();
+        if (isAllowed(email)) {
+          localStorage.setItem('hp_token', token);
+          localStorage.setItem('hp_email', email);
+          window.location.hash = '';
+          showApp(email);
+        } else {
+          errMsg.textContent = 'Access restricted to HolidayPirates accounts.';
+          errMsg.style.display = 'block';
+          localStorage.removeItem('hp_token');
+          localStorage.removeItem('hp_email');
+        }
+      })
+      .catch(() => { errMsg.textContent = 'Login failed.'; errMsg.style.display = 'block'; });
+    return true;
+  }
+
+  function checkSession() {
+    const token = localStorage.getItem('hp_token');
+    const email = localStorage.getItem('hp_email');
+    if (!token || !email) return false;
+    fetch(IDENTITY + '/user', { headers: { Authorization: 'Bearer ' + token } })
+      .then(r => { if (r.ok) showApp(email); else { localStorage.removeItem('hp_token'); localStorage.removeItem('hp_email'); } })
+      .catch(() => { localStorage.removeItem('hp_token'); localStorage.removeItem('hp_email'); });
+    return true;
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    if (!handleCallback()) checkSession();
+  });
+
+  loginBtn.addEventListener('click', () => {
+    errMsg.style.display = 'none';
+    window.location.href = IDENTITY + '/authorize?provider=google&site_id=' + SITE_ID;
+  });
+
+  if (signoutBtn) signoutBtn.addEventListener('click', () => {
+    localStorage.removeItem('hp_token');
+    localStorage.removeItem('hp_email');
+    location.reload();
+  });
 </script>
 </body>
 </html>"""
