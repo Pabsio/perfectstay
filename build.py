@@ -962,36 +962,7 @@ function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;")
 </script>
 </div><!-- /app-content -->
 
-<!-- NETLIFY IDENTITY -->
-<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-<script>
-  const gate     = document.getElementById('auth-gate');
-  const appDiv   = document.getElementById('app-content');
-  const loginBtn = document.getElementById('login-btn');
-  const errMsg   = document.getElementById('auth-error');
-  const signoutBtn = document.getElementById('signout-btn');
-  function checkUser(user) {
-    if (!user) return;
-    const email = (user.email || (user.user_metadata && user.user_metadata.email) || "").toLowerCase().trim();
-    if (!email) { setTimeout(() => checkUser(netlifyIdentity.currentUser()), 400); return; }
-    if (email.endsWith("@holidaypirates.com")) {
-      gate.style.display   = "none";
-      appDiv.style.display = "block";
-    } else {
-      sessionStorage.setItem('deck_domain_error', '1');
-      netlifyIdentity.logout();
-    }
-  }
-  netlifyIdentity.on('init', user => {
-    if (sessionStorage.getItem('deck_domain_error')) { errMsg.style.display='block'; sessionStorage.removeItem('deck_domain_error'); }
-    checkUser(user);
-  });
-  netlifyIdentity.on('login', user => { netlifyIdentity.close(); checkUser(user); });
-  netlifyIdentity.on('logout', () => location.reload());
-  loginBtn.addEventListener('click', () => { errMsg.style.display='none'; netlifyIdentity.open('login'); });
-  if (signoutBtn) signoutBtn.addEventListener('click', () => netlifyIdentity.logout());
-  netlifyIdentity.init();
-</script>
+
 </div><!-- /app-content -->
 
 <!-- AUTH — redirect flow -->
